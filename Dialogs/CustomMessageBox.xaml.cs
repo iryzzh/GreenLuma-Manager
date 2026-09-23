@@ -1,7 +1,8 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using GreenLuma_Manager.Utilities;
 using SolidColorBrush = System.Windows.Media.SolidColorBrush;
 
 namespace GreenLuma_Manager.Dialogs;
@@ -14,6 +15,8 @@ public partial class CustomMessageBox
 
         TitleText.Text = title;
         MessageText.Text = message;
+
+        WindowHelper.EnableWindows11Style(this);
 
         SetIcon(icon);
         SetButtons(buttons);

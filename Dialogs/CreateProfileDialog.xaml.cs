@@ -1,7 +1,8 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using GreenLuma_Manager.Models;
+using GreenLuma_Manager.Utilities;
 
 namespace GreenLuma_Manager.Dialogs;
 
@@ -10,6 +11,7 @@ public partial class CreateProfileDialog
     public CreateProfileDialog()
     {
         InitializeComponent();
+        WindowHelper.EnableWindows11Style(this);
         Result = null;
         TxtProfileName.Focus();
         PreviewKeyDown += OnPreviewKeyDown;

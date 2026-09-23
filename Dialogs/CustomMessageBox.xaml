@@ -1,11 +1,11 @@
-﻿<Window
+<Window
     x:Class="GreenLuma_Manager.Dialogs.CustomMessageBox"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Message"
-    Width="480"
-    MinHeight="220"
-    MaxHeight="600"
+    Width="400"
+    MinHeight="160"
+    MaxHeight="500"
     Background="#FF1A1A1A"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -13,7 +13,11 @@
     Topmost="True"
     WindowStartupLocation="CenterOwner">
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" UseAeroCaptionButtons="False" />
+        <WindowChrome
+            CaptionHeight="0"
+            CornerRadius="8"
+            GlassFrameThickness="1"
+            UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
     <FrameworkElement.Resources>
         <ResourceDictionary>
@@ -35,10 +39,10 @@
                 <Setter Property="Background" Value="{StaticResource Accent}" />
                 <Setter Property="Foreground" Value="{StaticResource DarkBg}" />
                 <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Height" Value="40" />
-                <Setter Property="MinWidth" Value="100" />
-                <Setter Property="Padding" Value="24,0" />
-                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="MinWidth" Value="75" />
+                <Setter Property="Padding" Value="14,0" />
+                <Setter Property="FontSize" Value="12" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Cursor" Value="Hand" />
                 <Setter Property="Template">
@@ -47,7 +51,7 @@
                             <Border
                                 Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="6">
+                                CornerRadius="4">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                         </ControlTemplate>
@@ -76,7 +80,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6">
+                                CornerRadius="4">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                         </ControlTemplate>
@@ -90,54 +94,61 @@
             </Style>
         </ResourceDictionary>
     </FrameworkElement.Resources>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="60" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Border
-            Grid.Row="0"
-            Background="{StaticResource DarkBg}"
-            BorderBrush="{StaticResource Border}"
-            BorderThickness="0,0,0,1"
-            MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-            <Grid Margin="24,0">
-                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                    <Path
-                        Name="IconPath"
-                        Width="20"
-                        Height="20"
-                        Margin="0,0,12,0"
-                        Stretch="Uniform" />
-                    <TextBlock
-                        Name="TitleText"
-                        VerticalAlignment="Center"
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Foreground="{StaticResource Text}" />
-                </StackPanel>
-            </Grid>
-        </Border>
-        <Border Grid.Row="1" Padding="24,20">
-            <TextBlock
-                Name="MessageText"
-                VerticalAlignment="Center"
-                FontSize="14"
-                Foreground="{StaticResource TextSecond}"
-                LineHeight="22"
-                TextWrapping="Wrap" />
-        </Border>
-        <Border
-            Grid.Row="2"
-            Padding="24,16"
-            Background="{StaticResource SurfaceBg}"
-            BorderBrush="{StaticResource Border}"
-            BorderThickness="0,1,0,0">
-            <StackPanel
-                Name="ButtonPanel"
-                HorizontalAlignment="Right"
-                Orientation="Horizontal" />
-        </Border>
-    </Grid>
+    <Border
+        Background="{StaticResource DarkBg}"
+        BorderBrush="#FF444444"
+        BorderThickness="1"
+        CornerRadius="8"
+        ClipToBounds="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="36" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border
+                Grid.Row="0"
+                Background="{StaticResource DarkBg}"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="0,0,0,1"
+                MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <Path
+                            Name="IconPath"
+                            Width="16"
+                            Height="16"
+                            Margin="0,0,8,0"
+                            Stretch="Uniform" />
+                        <TextBlock
+                            Name="TitleText"
+                            VerticalAlignment="Center"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{StaticResource Text}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Grid.Row="1" Padding="16,14">
+                <TextBlock
+                    Name="MessageText"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{StaticResource TextSecond}"
+                    LineHeight="18"
+                    TextWrapping="Wrap" />
+            </Border>
+            <Border
+                Grid.Row="2"
+                Padding="16,10"
+                Background="{StaticResource SurfaceBg}"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="0,1,0,0">
+                <StackPanel
+                    Name="ButtonPanel"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal" />
+            </Border>
+        </Grid>
+    </Border>
 </Window>

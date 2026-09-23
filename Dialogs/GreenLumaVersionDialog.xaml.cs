@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using GreenLuma_Manager.Services;
+using GreenLuma_Manager.Utilities;
 
 namespace GreenLuma_Manager.Dialogs;
 
@@ -15,6 +16,7 @@ public partial class GreenLumaVersionDialog
     private GreenLumaVersionDialog(string detectedVersion)
     {
         InitializeComponent();
+        WindowHelper.EnableWindows11Style(this);
 
         MessageText.Text =
             $"GreenLuma Manager detected GreenLuma version {detectedVersion}.\n\n" +

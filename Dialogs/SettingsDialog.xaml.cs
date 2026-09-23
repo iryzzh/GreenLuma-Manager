@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
@@ -18,6 +18,8 @@ public partial class SettingsDialog
     {
         InitializeComponent();
         _config = config;
+
+        WindowHelper.EnableWindows11Style(this);
 
         LoadSettings();
         UpdateAutoUpdateVisibility();
@@ -456,5 +458,17 @@ public partial class SettingsDialog
     {
         Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
         e.Handled = true;
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+            DragMove();
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        DialogResult = false;
+        Close();
     }
 }

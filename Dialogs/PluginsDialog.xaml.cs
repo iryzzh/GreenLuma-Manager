@@ -1,9 +1,10 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Services;
+using GreenLuma_Manager.Utilities;
 using Microsoft.Win32;
 
 namespace GreenLuma_Manager.Dialogs;
@@ -13,6 +14,7 @@ public partial class PluginsDialog
     public PluginsDialog()
     {
         InitializeComponent();
+        WindowHelper.EnableWindows11Style(this);
         LoadPlugins();
         PreviewKeyDown += OnPreviewKeyDown;
     }
