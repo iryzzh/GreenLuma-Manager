@@ -38,6 +38,7 @@ public partial class MainWindow
     public MainWindow()
     {
         InitializeComponent();
+        WindowHelper.EnableWindows11Style(this);
 
         _profiles = [];
 
@@ -51,7 +52,7 @@ public partial class MainWindow
 
         _searchController = new SearchController(
             DgResults, PnlSearchLoading, PnlEmptyResults,
-            PnlResultsHeader, BtnAddAll, _notificationManager);
+            PnlResultsHeader, BtnAddAll, _notificationManager, _gameListController);
 
         _profileController = new ProfileController(
             CmbProfile, _profiles, _gameListController, _notificationManager);
@@ -60,7 +61,16 @@ public partial class MainWindow
             _profileController, _gameListController, _launcher, _notificationManager);
 
         _searchController.GameSelected += OnSearchResultSelected;
-        _searchController.ResultsLoaded += UpdateResultCount;
+        _searchController.ResultsLoaded += () =>
+        {
+            _searchController.SyncProfileStatus(_gameListController.GetSelectedAppIds());
+            UpdateResultCount();
+        };
+        _gameListController.GamesChanged += () =>
+        {
+            _searchController.SyncProfileStatus(_gameListController.GetSelectedAppIds());
+            UpdateResultCount();
+        };
 
         FocusSearchCommand = new RelayCommand(_ => TxtSearchInput.Focus());
         GenerateApplistCommand =
@@ -247,7 +257,16 @@ public partial class MainWindow
             return true;
         };
         var visible = view.Cast<object>().Count();
-        TxtResultCount.Text = $"Showing {visible} of {_searchController.TotalResultCount} results";
+        var total = _searchController.TotalResultCount;
+        if (BtnHideAdded.IsChecked == true && total > visible)
+        {
+            var hidden = total - visible;
+            TxtResultCount.Text = $"Showing {visible} of {total} ({hidden} hidden)";
+        }
+        else
+        {
+            TxtResultCount.Text = $"Showing {visible} of {total} results";
+        }
     }
 
     private void SearchResult_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -338,6 +357,7 @@ public partial class MainWindow
                 if (existing != null)
                 {
                     _gameListController.RemoveGame(existing);
+                    _profileController.CurrentProfile?.Games.Remove(existing);
                     var searchResult = _searchController.SearchResults.FirstOrDefault(g => g.AppId == game.AppId);
                     if (searchResult != null) searchResult.IsInProfile = false;
                     removed++;
@@ -358,25 +378,46 @@ public partial class MainWindow
 
         if (_searchController.SearchResults.Count == 0) return;
 
-        var added = new List<Game>();
-        foreach (var result in _searchController.SearchResults.ToList())
-        {
-            if (_gameListController.Games.Any(g => g.AppId == result.AppId))
-                continue;
+        var view = CollectionViewSource.GetDefaultView(_searchController.SearchResults);
+        var itemsToAdd = view.Cast<Game>()
+            .Where(g => !_gameListController.Games.Any(x => x.AppId == g.AppId))
+            .ToList();
 
-            OnSearchResultSelected(result);
-            added.Add(result);
-        }
-
-        if (added.Count > 0)
-        {
-            _lastAddAllGames = added;
-            btn.Content = "UNDO";
-        }
-        else
+        if (itemsToAdd.Count == 0)
         {
             _notificationManager.ShowToast("All results already in profile", false);
+            return;
         }
+
+        var profileName = _profileController.CurrentProfile?.Name ?? "current profile";
+        var confirm = CustomMessageBox.Show(
+            $"Add all {itemsToAdd.Count} games to '{profileName}'?",
+            "Confirm Add All",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        foreach (var item in itemsToAdd)
+        {
+            var newGame = new Game
+            {
+                AppId = item.AppId,
+                Name = item.Name,
+                Type = item.Type,
+                IconUrl = item.IconUrl
+            };
+            _gameListController.AddGame(newGame);
+            _profileController.CurrentProfile?.Games.Add(newGame);
+            item.IsInProfile = true;
+        }
+
+        _profileController.SaveCurrentProfile();
+        _lastAddAllGames = itemsToAdd;
+        btn.Content = "UNDO";
+        UpdateResultCount();
+        _notificationManager.ShowToast($"Added {itemsToAdd.Count} games");
     }
 
     private async Task TryAddByAppIdAsync(uint appId)
@@ -1059,7 +1100,7 @@ public partial class MainWindow
             if (_config == null) return;
 
             var hadGreenLumaPath = !string.IsNullOrWhiteSpace(_config.GreenLumaPath);
-            var dialog = new SettingsDialog(_config);
+            var dialog = new SettingsDialog(_config) { Owner = this };
 
             if (dialog.ShowDialog() == true)
             {

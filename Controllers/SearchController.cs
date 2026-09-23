@@ -13,6 +13,7 @@ public class SearchController
 {
     private readonly Button _btnAddAll;
     private readonly DataGrid _dgResults;
+    private readonly GameListController? _gameListController;
     private readonly NotificationManager _notificationManager;
     private readonly UIElement _pnlEmptyResults;
     private readonly UIElement _pnlResultsHeader;
@@ -25,7 +26,8 @@ public class SearchController
         UIElement pnlEmptyResults,
         UIElement pnlResultsHeader,
         Button btnAddAll,
-        NotificationManager notificationManager)
+        NotificationManager notificationManager,
+        GameListController? gameListController = null)
     {
         _dgResults = dgResults;
         _pnlSearchLoading = pnlSearchLoading;
@@ -33,6 +35,7 @@ public class SearchController
         _pnlResultsHeader = pnlResultsHeader;
         _btnAddAll = btnAddAll;
         _notificationManager = notificationManager;
+        _gameListController = gameListController;
 
         SearchResults = [];
         _dgResults.ItemsSource = SearchResults;
@@ -97,7 +100,7 @@ public class SearchController
 
         if (token.IsCancellationRequested) return;
 
-        DisplayResults(results);
+        DisplayResults(results, query);
 
         if (results.Count == 0) return;
 
@@ -155,8 +158,35 @@ public class SearchController
         _pnlSearchLoading.Visibility = Visibility.Collapsed;
     }
 
-    public void DisplayResults(List<Game> results)
+    public void DisplayResults(List<Game> results, string? query = null)
     {
+        var existingSet = new HashSet<string>(_gameListController?.GetSelectedAppIds() ?? []);
+
+        if (_gameListController != null && !string.IsNullOrWhiteSpace(query))
+        {
+            var q = query.Trim();
+            var matchingProfileGames = _gameListController.Games
+                .Where(pg => (pg.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || pg.AppId == q)
+                             && !results.Any(r => r.AppId == pg.AppId))
+                .ToList();
+
+            for (var i = matchingProfileGames.Count - 1; i >= 0; i--)
+            {
+                var pg = matchingProfileGames[i];
+                results.Insert(0, new Game
+                {
+                    AppId = pg.AppId,
+                    Name = pg.Name,
+                    Type = pg.Type,
+                    IconUrl = pg.IconUrl,
+                    IsInProfile = true
+                });
+            }
+        }
+
+        foreach (var game in results)
+            game.IsInProfile = existingSet.Contains(game.AppId);
+
         TotalResultCount = results.Count;
         SearchResults.Clear();
         HideLoading();
@@ -179,6 +209,13 @@ public class SearchController
         _pnlEmptyResults.Visibility = Visibility.Collapsed;
         _btnAddAll.Visibility = Visibility.Visible;
         ResultsLoaded?.Invoke();
+    }
+
+    public void SyncProfileStatus(IEnumerable<string> existingAppIds)
+    {
+        var set = new HashSet<string>(existingAppIds);
+        foreach (var game in SearchResults)
+            game.IsInProfile = set.Contains(game.AppId);
     }
 
     public void CancelSearch()

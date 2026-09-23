@@ -24,6 +24,8 @@ public class GameListController
 
     public ObservableCollection<Game> Games { get; } = [];
 
+    public event Action? GamesChanged;
+
     public string? EditingOriginalName { get; set; }
 
     public bool IsFilterActive => !string.IsNullOrEmpty(_searchFilter);
@@ -102,10 +104,14 @@ public class GameListController
         Games.Clear();
         _notificationManager.UpdateGameCount(0);
         UpdateGameListState();
+        GamesChanged?.Invoke();
     }
 
     public void AddGame(Game game)
     {
+        if (Games.Any(g => g.AppId == game.AppId))
+            return;
+
         var index = BinarySearchInsertIndex(game.Name);
         Games.Insert(index, game);
 
@@ -113,6 +119,7 @@ public class GameListController
         var count = view.Filter == null ? Games.Count : view.Cast<object>().Count();
         _notificationManager.UpdateGameCount(count, view.Filter != null);
         UpdateGameListState();
+        GamesChanged?.Invoke();
     }
 
     public void RemoveGame(Game game)
@@ -123,6 +130,7 @@ public class GameListController
         var count = view.Filter == null ? Games.Count : view.Cast<object>().Count();
         _notificationManager.UpdateGameCount(count, view.Filter != null);
         UpdateGameListState();
+        GamesChanged?.Invoke();
     }
 
     public void LoadGames(IEnumerable<Game> games)
@@ -132,11 +140,18 @@ public class GameListController
         _typeFilter = null;
         CollectionViewSource.GetDefaultView(Games).Filter = null;
 
-        foreach (var game in games.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase))
+        var distinctGames = games
+            .Where(g => !string.IsNullOrWhiteSpace(g.AppId))
+            .GroupBy(g => g.AppId)
+            .Select(grp => grp.First())
+            .OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var game in distinctGames)
             Games.Add(game);
 
         _notificationManager.UpdateGameCount(Games.Count);
         UpdateGameListState();
+        GamesChanged?.Invoke();
     }
 
     public void UpdateGameListState()
