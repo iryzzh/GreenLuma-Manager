@@ -81,7 +81,7 @@ public class ProfileController
         if (CurrentProfile == null) return;
 
         CurrentProfile.Games.Clear();
-        foreach (var game in _gameListController.Games)
+        foreach (var game in _gameListController.Games.Where(g => !string.IsNullOrWhiteSpace(g.AppId)).GroupBy(g => g.AppId).Select(grp => grp.First()))
             CurrentProfile.Games.Add(game);
 
         ProfileService.Save(CurrentProfile);
@@ -89,7 +89,7 @@ public class ProfileController
 
     public string CreateProfile()
     {
-        var dialog = new CreateProfileDialog();
+        var dialog = new CreateProfileDialog { Owner = Application.Current.MainWindow };
         if (dialog.ShowDialog() != true || dialog.Result == null)
             return string.Empty;
 
@@ -156,6 +156,12 @@ public class ProfileController
         }
 
         foreach (var game in profile.Games) game.IconUrl = string.Empty;
+
+        profile.Games = profile.Games
+            .Where(g => !string.IsNullOrWhiteSpace(g.AppId))
+            .GroupBy(g => g.AppId)
+            .Select(grp => grp.First())
+            .ToList();
 
         if (!ValidateProfileName(profile.Name))
         {

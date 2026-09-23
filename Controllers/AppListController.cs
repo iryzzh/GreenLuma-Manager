@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.IO;
+using System.Windows;
 using GreenLuma_Manager.Models;
 using GreenLuma_Manager.Services;
 
@@ -133,7 +134,7 @@ public class AppListController
         await Task.WhenAll(tasks).ConfigureAwait(false);
         tasks.Clear();
 
-        var mainAppIds = appIds.Where(id => !allFoundDepotIds.Contains(id)).ToList();
+        var mainAppIds = appIds.Where(id => !allFoundDepotIds.Contains(id)).Distinct().ToList();
         var importedGames = new ConcurrentBag<Game>();
         var importedCount = 0;
 
@@ -175,7 +176,7 @@ public class AppListController
                     }
 
                     if (depotsToAssign != null)
-                        game.Depots = depotsToAssign.Where(depotId => appIds.Contains(depotId)).ToList();
+                        game.Depots = depotsToAssign.Where(depotId => appIds.Contains(depotId)).Distinct().ToList();
 
                     if (!string.IsNullOrWhiteSpace(game.IconUrl))
                     {
@@ -206,7 +207,13 @@ public class AppListController
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
 
-        var allGames = _gameListController.Games.Concat(importedGames).ToList();
+        var distinctImported = importedGames
+            .Where(g => !string.IsNullOrWhiteSpace(g.AppId))
+            .GroupBy(g => g.AppId)
+            .Select(grp => grp.First())
+            .ToList();
+
+        var allGames = _gameListController.Games.Concat(distinctImported).ToList();
 
         foreach (var depotId in appIds.Where(id => allFoundDepotIds.Contains(id)))
         {
@@ -236,17 +243,34 @@ public class AppListController
                 parentGame.Depots.Add(depotId);
         }
 
-        foreach (var game in importedGames)
-            profile.Games.Add(game);
+        foreach (var game in distinctImported)
+        {
+            var existing = profile.Games.FirstOrDefault(g => g.AppId == game.AppId);
+            if (existing == null)
+            {
+                profile.Games.Add(game);
+            }
+            else
+            {
+                foreach (var depot in game.Depots)
+                    if (!existing.Depots.Contains(depot))
+                        existing.Depots.Add(depot);
+            }
+        }
 
         ProfileService.Save(profile);
 
-        if (string.Equals(_profileController.CurrentProfile?.Name, profile.Name, StringComparison.OrdinalIgnoreCase))
-            _gameListController.LoadGames(profile.Games);
+        var isCurrent = string.Equals(_profileController.CurrentProfile?.Name, profile.Name, StringComparison.OrdinalIgnoreCase);
+        var totalDepotsIncluded = distinctImported.Sum(g => g.Depots.Count);
 
-        var totalDepotsIncluded = importedGames.Sum(g => g.Depots.Count);
-        _notificationManager.ShowToast(
-            $"Added {importedGames.Count} Games/DLCs & {totalDepotsIncluded} Depots from {appIds.Count} IDs");
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            if (isCurrent)
+                _gameListController.LoadGames(profile.Games);
+
+            _notificationManager.ShowToast(
+                $"Added {distinctImported.Count} Games/DLCs & {totalDepotsIncluded} Depots from {appIds.Count} IDs");
+        });
 
         progress?.Report(new AppListProgressReport
         {
