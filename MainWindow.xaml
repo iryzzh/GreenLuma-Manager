@@ -197,14 +197,6 @@
                                         BorderThickness="1"
                                         CornerRadius="6"
                                         RenderTransformOrigin="0.5,0">
-                                        <Border.Effect>
-                                            <DropShadowEffect
-                                                BlurRadius="12"
-                                                Direction="270"
-                                                Opacity="0.4"
-                                                ShadowDepth="4"
-                                                Color="Black" />
-                                        </Border.Effect>
                                         <Border.RenderTransform>
                                             <ScaleTransform ScaleX="1" ScaleY="1" />
                                         </Border.RenderTransform>
@@ -212,14 +204,6 @@
                                             MaxHeight="200"
                                             HorizontalScrollBarVisibility="Disabled"
                                             VerticalScrollBarVisibility="Auto">
-                                            <ScrollViewer.Resources>
-                                                <ResourceDictionary>
-                                                    <ResourceDictionary.MergedDictionaries>
-                                                        <ResourceDictionary
-                                                            Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
-                                                    </ResourceDictionary.MergedDictionaries>
-                                                </ResourceDictionary>
-                                            </ScrollViewer.Resources>
                                             <StackPanel IsItemsHost="True" />
                                         </ScrollViewer>
                                     </Border>
@@ -266,14 +250,6 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6">
-                                <Border.Effect>
-                                    <DropShadowEffect
-                                        BlurRadius="10"
-                                        Direction="270"
-                                        Opacity="0.3"
-                                        ShadowDepth="3"
-                                        Color="Black" />
-                                </Border.Effect>
                                 <ContentPresenter />
                             </Border>
                         </ControlTemplate>
@@ -500,28 +476,12 @@
                                         BorderThickness="1"
                                         CornerRadius="6"
                                         RenderTransformOrigin="0.5,0">
-                                        <Border.Effect>
-                                            <DropShadowEffect
-                                                BlurRadius="12"
-                                                Direction="270"
-                                                Opacity="0.4"
-                                                ShadowDepth="4"
-                                                Color="Black" />
-                                        </Border.Effect>
                                         <Border.RenderTransform>
                                             <ScaleTransform ScaleX="1" ScaleY="1" />
                                         </Border.RenderTransform>
                                         <ScrollViewer
                                             HorizontalScrollBarVisibility="Disabled"
                                             VerticalScrollBarVisibility="Auto">
-                                            <ScrollViewer.Resources>
-                                                <ResourceDictionary>
-                                                    <ResourceDictionary.MergedDictionaries>
-                                                        <ResourceDictionary
-                                                            Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
-                                                    </ResourceDictionary.MergedDictionaries>
-                                                </ResourceDictionary>
-                                            </ScrollViewer.Resources>
                                             <StackPanel IsItemsHost="True" />
                                         </ScrollViewer>
                                     </Border>
@@ -1836,14 +1796,6 @@
                                                                 BorderBrush="{TemplateBinding BorderBrush}"
                                                                 BorderThickness="{TemplateBinding BorderThickness}"
                                                                 CornerRadius="6">
-                                                                <Border.Effect>
-                                                                    <DropShadowEffect
-                                                                        BlurRadius="10"
-                                                                        Direction="270"
-                                                                        Opacity="0.3"
-                                                                        ShadowDepth="3"
-                                                                        Color="Black" />
-                                                                </Border.Effect>
                                                                 <StackPanel Margin="0" IsItemsHost="True" />
                                                             </Border>
                                                         </ControlTemplate>
@@ -2084,35 +2036,34 @@
                             Background="{StaticResource DarkBg}"
                             BorderBrush="{StaticResource Border}"
                             BorderThickness="1"
-                            CornerRadius="8">
+                            CornerRadius="8"
+                            ClipToBounds="True">
                             <Grid>
-                                <Grid.OpacityMask>
-                                    <VisualBrush>
-                                        <VisualBrush.Visual>
-                                            <Border
-                                                Width="{Binding ActualWidth, ElementName=MainGameListContainer}"
-                                                Height="{Binding ActualHeight, ElementName=MainGameListContainer}"
-                                                Background="Black"
-                                                CornerRadius="{Binding CornerRadius, ElementName=MainGameListContainer}" />
-                                        </VisualBrush.Visual>
-                                    </VisualBrush>
-                                </Grid.OpacityMask>
-
-                                <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto">
-                                    <ScrollViewer.Resources>
-                                        <ResourceDictionary>
-                                            <ResourceDictionary.MergedDictionaries>
-                                                <ResourceDictionary
-                                                    Source="pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml" />
-                                            </ResourceDictionary.MergedDictionaries>
-                                        </ResourceDictionary>
-                                    </ScrollViewer.Resources>
-
-                                    <ItemsControl x:Name="LstGames" Margin="6">
-                                        <ItemsControl.Resources>
-                                            <Style TargetType="TextBox" />
-                                        </ItemsControl.Resources>
-                                        <ItemsControl.ItemTemplate>
+                                <ItemsControl
+                                    x:Name="LstGames"
+                                    Margin="6"
+                                    VirtualizingPanel.IsVirtualizing="True"
+                                    VirtualizingPanel.VirtualizationMode="Recycling"
+                                    VirtualizingPanel.ScrollUnit="Pixel"
+                                    ScrollViewer.CanContentScroll="True"
+                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                    ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl.Template>
+                                        <ControlTemplate TargetType="ItemsControl">
+                                            <ScrollViewer Focusable="False" CanContentScroll="True" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                                <ItemsPresenter />
+                                            </ScrollViewer>
+                                        </ControlTemplate>
+                                    </ItemsControl.Template>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.Resources>
+                                        <Style TargetType="TextBox" />
+                                    </ItemsControl.Resources>
+                                    <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type models:Game}">
                                                 <Border
                                                     x:Name="GameItemBorder"
@@ -2403,9 +2354,8 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                </ScrollViewer>
-                            </Grid>
-                        </Border>
+                                </Grid>
+                            </Border>
 
                         <StackPanel
                             x:Name="PnlEmptyGames"
@@ -2639,14 +2589,6 @@
             BorderThickness="1"
             CornerRadius="6"
             Visibility="Collapsed">
-            <Border.Effect>
-                <DropShadowEffect
-                    BlurRadius="12"
-                    Direction="270"
-                    Opacity="0.3"
-                    ShadowDepth="3"
-                    Color="Black" />
-            </Border.Effect>
             <StackPanel Orientation="Horizontal">
                 <Path
                     x:Name="ToastIcon"

@@ -1162,13 +1162,6 @@
                                 BorderBrush="{StaticResource DangerBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6">
-                                <Border.Effect>
-                                    <DropShadowEffect
-                                        BlurRadius="10"
-                                        Opacity="0.15"
-                                        ShadowDepth="0"
-                                        Color="#FFFF4444" />
-                                </Border.Effect>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
