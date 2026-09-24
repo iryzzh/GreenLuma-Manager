@@ -14,27 +14,40 @@ public class ConfigService
         "GLM_Manager");
 
     private static readonly string ConfigPath = Path.Combine(ConfigDir, "config.json");
+    private static Config? _cachedConfig;
 
-
-    public static Config Load()
+    public static Config Load(bool forceReload = false)
     {
+        if (!forceReload && _cachedConfig != null)
+            return _cachedConfig;
+
         try
         {
             EnsureConfigDirectoryExists();
 
-            if (!File.Exists(ConfigPath)) return CreateDefaultConfig();
+            if (!File.Exists(ConfigPath))
+            {
+                _cachedConfig = CreateDefaultConfig();
+                return _cachedConfig;
+            }
 
             var configJson = File.ReadAllText(ConfigPath, Encoding.UTF8);
 
             var migratedConfig = TryMigrateFromOldVersion(configJson);
-            if (migratedConfig != null) return migratedConfig;
+            if (migratedConfig != null)
+            {
+                _cachedConfig = migratedConfig;
+                return _cachedConfig;
+            }
 
-            return DeserializeConfig(configJson) ?? new Config();
+            _cachedConfig = DeserializeConfig(configJson) ?? new Config();
+            return _cachedConfig;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "ConfigService.Load");
-            return new Config();
+            _cachedConfig = new Config();
+            return _cachedConfig;
         }
     }
 
@@ -109,6 +122,7 @@ public class ConfigService
     {
         try
         {
+            _cachedConfig = config;
             EnsureConfigDirectoryExists();
 
             var json = SerializeConfig(config);
@@ -129,6 +143,7 @@ public class ConfigService
     {
         try
         {
+            _cachedConfig = null;
             AutostartManager.CleanupAll();
 
             if (Directory.Exists(ConfigDir)) Directory.Delete(ConfigDir, true);

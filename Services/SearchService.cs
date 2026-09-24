@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Reflection;
 using System.Text.Json;
@@ -165,6 +165,7 @@ public class SearchService
 
     private static async Task GetAppListAsync(CancellationToken ct = default)
     {
+        using var timer = Logger.Measure("SearchService.GetAppListAsync");
         if (_appListCache != null && DateTime.Now < _cacheExpiry)
             return;
 
@@ -199,6 +200,7 @@ public class SearchService
 
     private static async Task<List<SteamApp>> FetchLegacyAppListAsync(CancellationToken ct)
     {
+        using var timer = Logger.Measure("SearchService.FetchLegacyAppListAsync");
         var results = new List<SteamApp>();
         try
         {

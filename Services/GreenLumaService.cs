@@ -80,6 +80,7 @@ public partial class GreenLumaService
 
     public static (bool IsValid, bool IsStealthOnly, List<string> MissingFiles) ValidateInstallation(string path)
     {
+        using var timer = Logger.Measure("GreenLumaService.ValidateInstallation");
         var missing = new List<string>();
 
         if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
@@ -219,6 +220,7 @@ public partial class GreenLumaService
 
     public static string? DetectVersion(string greenLumaPath)
     {
+        using var timer = Logger.Measure("GreenLumaService.DetectVersion");
         if (string.IsNullOrWhiteSpace(greenLumaPath) || !Directory.Exists(greenLumaPath))
             return null;
 

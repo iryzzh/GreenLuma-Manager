@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.RegularExpressions;
 using GreenLuma_Manager.Services;
 using Microsoft.Win32;
@@ -12,6 +12,7 @@ public partial class PathDetector
 
     public static (string SteamPath, string GreenLumaPath) DetectPaths()
     {
+        using var timer = Logger.Measure("PathDetector.DetectPaths");
         var steamPath = DetectSteamPath();
         var greenLumaPath = DetectGreenLumaPath(steamPath);
 

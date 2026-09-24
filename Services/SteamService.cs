@@ -29,6 +29,7 @@ public sealed class SteamService : IDisposable
 
     private SteamService()
     {
+        using var timer = Logger.Measure("SteamService.ctor");
         _steamClient = new SteamClient(SteamConfiguration.Create(b =>
             b.WithProtocolTypes(ProtocolTypes.WebSocket)
                 .WithConnectionTimeout(TimeSpan.FromSeconds(10))));
@@ -52,6 +53,7 @@ public sealed class SteamService : IDisposable
     }
 
     public static SteamService Instance => InstanceHolder.Value;
+    public static bool IsInitialized => InstanceHolder.IsValueCreated;
 
     public void Dispose()
     {

@@ -16,6 +16,7 @@ public class ProfileService
 
     public static List<Profile> LoadAll()
     {
+        using var timer = Logger.Measure("ProfileService.LoadAll");
         var profiles = new List<Profile>();
         try
         {
@@ -48,6 +49,7 @@ public class ProfileService
 
     private static void LoadProfilesFromDirectory(List<Profile> profiles)
     {
+        using var timer = Logger.Measure("ProfileService.LoadProfilesFromDirectory");
         foreach (var file in Directory.GetFiles(ProfilesDir, "*.json"))
             try
             {
@@ -62,6 +64,7 @@ public class ProfileService
 
     public static Profile? Load(string profileName)
     {
+        using var timer = Logger.Measure($"ProfileService.Load({profileName})");
         try
         {
             var filePath = GetProfileFilePath(profileName);

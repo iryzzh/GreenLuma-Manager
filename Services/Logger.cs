@@ -74,6 +74,62 @@ public static class Logger
         Write("Error", $"{message}: {ex.GetType().Name}: {ex.Message}", memberName, filePath, lineNumber);
     }
 
+    public static void Perf(
+        string message,
+        [CallerMemberName] string memberName = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+    {
+        Write("Perf", message, memberName, filePath, lineNumber);
+    }
+
+    public static IDisposable Measure(
+        string operationName,
+        [CallerMemberName] string memberName = "",
+        [CallerFilePath] string filePath = "",
+        [CallerLineNumber] int lineNumber = 0)
+    {
+#if DEBUG
+        return new PerfTimer(operationName, memberName, filePath, lineNumber);
+#else
+        return NoopDisposable.Instance;
+#endif
+    }
+
+    private sealed class NoopDisposable : IDisposable
+    {
+        public static readonly NoopDisposable Instance = new();
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class PerfTimer : IDisposable
+    {
+        private readonly string _operation;
+        private readonly string _memberName;
+        private readonly string _filePath;
+        private readonly int _lineNumber;
+        private readonly long _start;
+
+        public PerfTimer(string operation, string memberName, string filePath, int lineNumber)
+        {
+            _operation = operation;
+            _memberName = memberName;
+            _filePath = filePath;
+            _lineNumber = lineNumber;
+            _start = System.Diagnostics.Stopwatch.GetTimestamp();
+            Write("Perf", $"START: {_operation}", _memberName, _filePath, _lineNumber);
+        }
+
+        public void Dispose()
+        {
+            var elapsedMs = System.Diagnostics.Stopwatch.GetElapsedTime(_start).TotalMilliseconds;
+            Write("Perf", $"END: {_operation} took {elapsedMs:F2} ms", _memberName, _filePath, _lineNumber);
+        }
+    }
+
     private static void Write(string level, string message, string memberName, string filePath, int lineNumber)
     {
         try

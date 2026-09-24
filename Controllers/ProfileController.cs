@@ -33,6 +33,7 @@ public class ProfileController
 
     public void LoadProfileList()
     {
+        using var timer = Logger.Measure("ProfileController.LoadProfileList");
         _profiles.Clear();
 
         foreach (var profile in ProfileService.LoadAll())
@@ -59,6 +60,7 @@ public class ProfileController
 
     public void LoadProfile(string profileName)
     {
+        using var timer = Logger.Measure($"ProfileController.LoadProfile({profileName})");
         CurrentProfile = ProfileService.Load(profileName);
 
         if (CurrentProfile == null)

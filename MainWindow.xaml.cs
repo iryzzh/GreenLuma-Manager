@@ -37,8 +37,17 @@ public partial class MainWindow
 
     public MainWindow()
     {
-        InitializeComponent();
-        WindowHelper.EnableWindows11Style(this);
+        using var timer = Logger.Measure("MainWindow.ctor");
+
+        using (Logger.Measure("MainWindow.InitializeComponent"))
+        {
+            InitializeComponent();
+        }
+
+        using (Logger.Measure("MainWindow.WindowHelper"))
+        {
+            WindowHelper.EnableWindows11Style(this);
+        }
 
         _profiles = [];
 
@@ -84,30 +93,54 @@ public partial class MainWindow
         DataContext = this;
         CmbProfile.ItemsSource = _profiles;
 
-        _config = ConfigService.Load();
-        if (_config != null)
+        using (Logger.Measure("MainWindow.ConfigLoad"))
         {
-            TglStealthMode.IsChecked = _config.NoHook;
-            SanitizeApiKey(_config);
-            SearchService.SetApiKey(_config.SteamApiKey);
-            if (_config.WindowWidth >= MinWidth && _config.WindowHeight >= MinHeight)
+            _config = ConfigService.Load();
+            if (_config != null)
             {
-                Width = _config.WindowWidth;
-                Height = _config.WindowHeight;
+                TglStealthMode.IsChecked = _config.NoHook;
+                SanitizeApiKey(_config);
+                SearchService.SetApiKey(_config.SteamApiKey);
+                if (_config.WindowWidth >= MinWidth && _config.WindowHeight >= MinHeight)
+                {
+                    Width = _config.WindowWidth;
+                    Height = _config.WindowHeight;
+                }
             }
         }
 
-        _profileController.Config = _config;
-        _profileController.LoadProfileList();
+        using (Logger.Measure("MainWindow.ProfileListLoad"))
+        {
+            _profileController.Config = _config;
+            _profileController.LoadProfileList();
+        }
 
-        _gameListController.UpdateGameListState();
-        UpdatePluginButtons();
-        CheckPathsOnStartup();
-        CheckApiKeyOnStartup();
-        CheckForUpdates();
-        CheckForGreenLumaUpdates();
-        CheckGreenLumaVersionOnStartup();
-        UpdateStatus();
+        using (Logger.Measure("MainWindow.UpdateGameListState"))
+        {
+            _gameListController.UpdateGameListState();
+        }
+
+        using (Logger.Measure("MainWindow.UpdatePluginButtons"))
+        {
+            UpdatePluginButtons();
+        }
+
+        using (Logger.Measure("MainWindow.StartupChecks"))
+        {
+            CheckPathsOnStartup();
+            CheckApiKeyOnStartup();
+            CheckForUpdates();
+            CheckForGreenLumaUpdates();
+            CheckGreenLumaVersionOnStartup();
+        }
+
+        using (Logger.Measure("MainWindow.UpdateStatus"))
+        {
+            UpdateStatus();
+        }
+
+        Loaded += (_, _) => Logger.Perf("MainWindow.Loaded event fired");
+        ContentRendered += (_, _) => Logger.Perf("MainWindow.ContentRendered event fired");
     }
 
     public ICommand FocusSearchCommand { get; }
@@ -600,7 +633,7 @@ public partial class MainWindow
 
         _ = Task.Run(async () =>
         {
-            await Task.Delay(100, token);
+            await Task.Delay(1500, token);
             if (token.IsCancellationRequested) return;
 
             var gamesToProcess = _gameListController.Games
@@ -1256,6 +1289,7 @@ public partial class MainWindow
         {
             if (_config?.DisableUpdateCheck == true) return;
 
+            await Task.Delay(2500).ConfigureAwait(false);
             var updateInfo = await UpdateService.CheckForUpdatesAsync().ConfigureAwait(false);
             if (updateInfo?.UpdateAvailable == true)
                 await Application.Current.Dispatcher.InvokeAsync(() => HandleUpdateAvailable(updateInfo));
@@ -1272,6 +1306,7 @@ public partial class MainWindow
         {
             if (_config == null) return;
 
+            await Task.Delay(3000).ConfigureAwait(false);
             var versionInfo = await GreenLumaUpdateService.AutoDetectDefaultAsync(_config).ConfigureAwait(false);
             if (versionInfo is not { CheckSucceeded: true }) return;
 

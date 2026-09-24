@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using GreenLuma_Manager.Models;
+using GreenLuma_Manager.Services;
 
 namespace GreenLuma_Manager.Controllers;
 
@@ -135,6 +136,7 @@ public class GameListController
 
     public void LoadGames(IEnumerable<Game> games)
     {
+        using var timer = Logger.Measure("GameListController.LoadGames");
         Games.Clear();
         _searchFilter = null;
         _typeFilter = null;

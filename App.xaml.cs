@@ -9,13 +9,15 @@ public partial class App
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        using var timer = Logger.Measure("App.OnStartup");
         base.OnStartup(e);
         try
         {
-            PluginService.Initialize();
-            PluginService.OnApplicationStartup();
-
-            var config = ConfigService.Load();
+            using (Logger.Measure("PluginService.Initialize"))
+            {
+                PluginService.Initialize();
+                PluginService.OnApplicationStartup();
+            }
 
             if (e.Args.Length > 0)
                 foreach (var arg in e.Args)
@@ -23,6 +25,12 @@ public partial class App
                     {
                         try
                         {
+                            Config config;
+                            using (Logger.Measure("ConfigService.Load"))
+                            {
+                                config = ConfigService.Load();
+                            }
+
                             GreenLumaVersionPromptService.EnsureConfirmed(config);
                             GreenLumaService.LaunchGreenLumaAsync(config).GetAwaiter().GetResult();
                         }
@@ -35,16 +43,29 @@ public partial class App
                         return;
                     }
 
-            var profiles = ProfileService.LoadAll();
-            var valid = new HashSet<string>(profiles
-                .SelectMany(p => p.Games)
-                .Where(g => !string.IsNullOrWhiteSpace(g.AppId))
-                .Select(g => g.AppId));
-            IconCacheService.DeleteUnusedIcons(valid);
-            _ = WarmupIconsAsync(profiles);
-            SearchService.SetApiKey(config.SteamApiKey);
-            _ = SearchService.PrefetchAsync(config);
-            _ = Task.Run(() => { _ = SteamService.Instance; });
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(2000).ConfigureAwait(false);
+                try
+                {
+                    var config = ConfigService.Load();
+                    SearchService.SetApiKey(config.SteamApiKey);
+                    _ = SearchService.PrefetchAsync(config);
+                    _ = SteamService.Instance;
+
+                    var profiles = ProfileService.LoadAll();
+                    var valid = new HashSet<string>(profiles
+                        .SelectMany(p => p.Games)
+                        .Where(g => !string.IsNullOrWhiteSpace(g.AppId))
+                        .Select(g => g.AppId));
+                    IconCacheService.DeleteUnusedIcons(valid);
+                    await WarmupIconsAsync(profiles).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "App.BackgroundStartup");
+                }
+            });
         }
         catch (Exception ex)
         {
@@ -56,7 +77,8 @@ public partial class App
     {
         try
         {
-            SteamService.Instance.Dispose();
+            if (SteamService.IsInitialized)
+                SteamService.Instance.Dispose();
             PluginService.OnApplicationShutdown();
         }
         catch (Exception ex)
