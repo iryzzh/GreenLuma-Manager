@@ -1,6 +1,8 @@
-﻿using System.Globalization;
+using System.Collections.Concurrent;
+using System.Globalization;
 using System.IO;
 using System.Windows.Data;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GreenLuma_Manager.Services;
 
@@ -8,10 +10,25 @@ namespace GreenLuma_Manager.Utilities;
 
 public class IconUrlConverter : IValueConverter
 {
+    private static readonly ConcurrentDictionary<string, ImageSource?> ImageCache = new();
+
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         if (value is not string iconUrl || string.IsNullOrWhiteSpace(iconUrl))
             return null;
+
+        if (ImageCache.TryGetValue(iconUrl, out var cached))
+            return cached;
+
+        var result = LoadImageSource(iconUrl);
+        if (result != null)
+            ImageCache.TryAdd(iconUrl, result);
+
+        return result;
+    }
+
+    private static ImageSource? LoadImageSource(string iconUrl)
+    {
         try
         {
             if (iconUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
