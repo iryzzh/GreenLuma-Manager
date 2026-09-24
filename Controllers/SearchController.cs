@@ -187,6 +187,8 @@ public class SearchController
         foreach (var game in results)
             game.IsInProfile = existingSet.Contains(game.AppId);
 
+        results = [.. results.OrderByDescending(game => game.IsInProfile)];
+
         TotalResultCount = results.Count;
         SearchResults.Clear();
         HideLoading();
@@ -216,6 +218,20 @@ public class SearchController
         var set = new HashSet<string>(existingAppIds);
         foreach (var game in SearchResults)
             game.IsInProfile = set.Contains(game.AppId);
+
+        ReorderResultsByProfileStatus();
+    }
+
+    private void ReorderResultsByProfileStatus()
+    {
+        var ordered = SearchResults.OrderByDescending(game => game.IsInProfile).ToList();
+        for (var index = 0; index < ordered.Count; index++)
+        {
+            if (ReferenceEquals(SearchResults[index], ordered[index])) continue;
+
+            var currentIndex = SearchResults.IndexOf(ordered[index]);
+            SearchResults.Move(currentIndex, index);
+        }
     }
 
     public void CancelSearch()
