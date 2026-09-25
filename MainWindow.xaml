@@ -38,6 +38,7 @@
             <utilities:IconUrlConverter x:Key="IconUrlConverter" />
 
             <Style x:Key="FilterCombo" TargetType="ComboBox">
+                <Setter Property="OverridesDefaultStyle" Value="True" />
                 <Setter Property="Background" Value="{StaticResource DarkBg}" />
                 <Setter Property="Foreground" Value="{StaticResource Text}" />
                 <Setter Property="BorderBrush" Value="{StaticResource Border}" />
@@ -47,7 +48,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBox">
-                            <Grid>
+                            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                 <ToggleButton
                                     x:Name="ToggleButton"
                                     Background="{TemplateBinding Background}"
@@ -55,6 +56,9 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     ClickMode="Press"
                                     Focusable="False"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    OverridesDefaultStyle="True"
                                     IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
@@ -62,13 +66,15 @@
                                                 x:Name="BorderElement"
                                                 Background="{TemplateBinding Background}"
                                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="6">
+                                                CornerRadius="6"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Stretch">
                                                 <Border.BorderBrush>
                                                     <SolidColorBrush x:Name="BorderBrush" Color="#FF2A2A2A" />
                                                 </Border.BorderBrush>
-                                                <Grid>
+                                                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition />
+                                                        <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="20" />
                                                     </Grid.ColumnDefinitions>
                                                     <Path
@@ -274,11 +280,13 @@
             </Style>
 
             <Style x:Key="SearchInput" TargetType="TextBox">
+                <Setter Property="OverridesDefaultStyle" Value="True" />
                 <Setter Property="Background" Value="{StaticResource SurfaceBg}" />
                 <Setter Property="Foreground" Value="{StaticResource Text}" />
                 <Setter Property="BorderBrush" Value="{StaticResource Border}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="Height" Value="34" />
+                <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="Padding" Value="10,0" />
                 <Setter Property="FontSize" Value="13" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -311,6 +319,7 @@
             </Style>
 
             <Style x:Key="ProfileCombo" TargetType="ComboBox">
+                <Setter Property="OverridesDefaultStyle" Value="True" />
                 <Setter Property="Background" Value="{StaticResource DarkBg}" />
                 <Setter Property="Foreground" Value="{StaticResource Text}" />
                 <Setter Property="BorderBrush" Value="{StaticResource Border}" />
@@ -321,7 +330,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBox">
-                            <Grid>
+                            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                 <ToggleButton
                                     x:Name="ToggleButton"
                                     Background="{TemplateBinding Background}"
@@ -329,6 +338,9 @@
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     ClickMode="Press"
                                     Focusable="False"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Stretch"
+                                    OverridesDefaultStyle="True"
                                     IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
                                     <ToggleButton.Template>
                                         <ControlTemplate TargetType="ToggleButton">
@@ -336,13 +348,15 @@
                                                 x:Name="BorderElement"
                                                 Background="{TemplateBinding Background}"
                                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                                CornerRadius="6">
+                                                CornerRadius="6"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Stretch">
                                                 <Border.BorderBrush>
                                                     <SolidColorBrush x:Name="BorderBrush" Color="#FF2A2A2A" />
                                                 </Border.BorderBrush>
-                                                <Grid>
+                                                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition />
+                                                        <ColumnDefinition Width="*" />
                                                         <ColumnDefinition Width="28" />
                                                     </Grid.ColumnDefinitions>
                                                     <Path
@@ -591,10 +605,12 @@
             </Style>
 
             <Style x:Key="PrimaryBtn" TargetType="Button">
+                <Setter Property="OverridesDefaultStyle" Value="True" />
                 <Setter Property="Background" Value="{StaticResource Accent}" />
                 <Setter Property="Foreground" Value="{StaticResource DarkBg}" />
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Height" Value="34" />
+                <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="Padding" Value="16,0" />
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="FontWeight" Value="SemiBold" />
@@ -1403,12 +1419,13 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <Grid Grid.Column="0">
+                            <Grid Grid.Column="0" VerticalAlignment="Center">
                                 <TextBox
                                     x:Name="TxtSearchInput"
                                     GotFocus="SearchInput_GotFocus"
                                     KeyDown="SearchInput_KeyDown"
                                     LostFocus="SearchInput_LostFocus"
+                                    VerticalAlignment="Center"
                                     Style="{StaticResource SearchInput}" />
                                 <TextBlock
                                     x:Name="TxtSearchPlaceholder"
@@ -1421,6 +1438,7 @@
                                 x:Name="BtnSearch"
                                 Grid.Column="2"
                                 Width="96"
+                                VerticalAlignment="Center"
                                 Click="SearchButton_Click"
                                 Style="{StaticResource PrimaryBtn}">
                                 <StackPanel Orientation="Horizontal">
@@ -1932,7 +1950,7 @@
                                     FontSize="11"
                                     FontWeight="SemiBold"
                                     Foreground="{StaticResource TextSecond}"
-                                    Text="0" />
+                                    Text="0 / 151" />
                             </Border>
                         </Grid>
 
