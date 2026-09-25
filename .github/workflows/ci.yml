@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore GreenLuma-Manager.csproj
+
+      - name: Build
+        run: dotnet build GreenLuma-Manager.csproj -c Release --no-restore
+
+      - name: Test Publish
+        run: dotnet publish GreenLuma-Manager.csproj -r win-x64 -c Release --no-restore -o dist
