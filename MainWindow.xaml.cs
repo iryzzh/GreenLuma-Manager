@@ -324,12 +324,23 @@ public partial class MainWindow
             return;
         }
 
+        if (_gameListController.WouldExceedLimit([game], out var newTotal))
+        {
+            CustomMessageBox.Show(
+                $"Cannot add this item. The profile would exceed the GreenLuma limit of {GreenLumaService.AppListLimit} AppIDs ({newTotal}/{GreenLumaService.AppListLimit}).",
+                "AppList Limit Exceeded",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         var newGame = new Game
         {
             AppId = game.AppId,
             Name = game.Name,
             Type = game.Type,
-            IconUrl = game.IconUrl
+            IconUrl = game.IconUrl,
+            Depots = game.Depots != null ? [.. game.Depots] : []
         };
 
         _gameListController.AddGame(newGame);
@@ -422,6 +433,16 @@ public partial class MainWindow
             return;
         }
 
+        if (_gameListController.WouldExceedLimit(itemsToAdd, out var newTotal))
+        {
+            CustomMessageBox.Show(
+                $"Cannot add {itemsToAdd.Count} items. The profile would exceed the GreenLuma limit of {GreenLumaService.AppListLimit} AppIDs ({newTotal}/{GreenLumaService.AppListLimit}).",
+                "AppList Limit Exceeded",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         var profileName = _profileController.CurrentProfile?.Name ?? "current profile";
         var confirm = CustomMessageBox.Show(
             $"Add all {itemsToAdd.Count} games to '{profileName}'?",
@@ -439,7 +460,8 @@ public partial class MainWindow
                 AppId = item.AppId,
                 Name = item.Name,
                 Type = item.Type,
-                IconUrl = item.IconUrl
+                IconUrl = item.IconUrl,
+                Depots = item.Depots != null ? [.. item.Depots] : []
             };
             _gameListController.AddGame(newGame);
             _profileController.CurrentProfile?.Games.Add(newGame);
@@ -461,69 +483,20 @@ public partial class MainWindow
         {
             _searchController.ShowLoading();
 
-            var details = await Task.Run(() => SteamService.Instance.GetGameDetailsAsync(appId)).ConfigureAwait(true);
+            var (baseGame, dlcs) = await Task.Run(() => SteamService.Instance.GetGameAndAllDlcsAsync(appId)).ConfigureAwait(true);
 
-            if (details != null && details.Name != $"App {appId}")
+            if (baseGame != null)
             {
                 _searchController.HideLoading();
 
-                var game = new Game
-                {
-                    AppId = appIdStr,
-                    Name = details.Name,
-                    Type = details.Type,
-                    IconUrl = string.Empty
-                };
-
-                OnSearchResultSelected(game);
-                return;
-            }
-
-            var pkgAppIds = await Task.Run(() => SteamService.Instance.GetPackageAppIdsAsync(appId))
-                .ConfigureAwait(true);
-
-            if (pkgAppIds.Count > 0)
-            {
-                var appDetails = await Task.Run(() => SteamService.Instance.GetAppInfoBatchAsync(pkgAppIds))
-                    .ConfigureAwait(true);
-
-                var results = new List<Game>();
-                var unresolvedIds = new List<string>();
-
-                foreach (var pkgAppId in pkgAppIds)
-                {
-                    var pkgAppIdStr = pkgAppId.ToString();
-                    appDetails.TryGetValue(pkgAppId, out var d);
-                    var name = d?.Name ?? $"App {pkgAppId}";
-                    var type = d?.Type ?? "DLC";
-
-                    if (name == $"App {pkgAppId}")
-                        unresolvedIds.Add(pkgAppIdStr);
-
-                    results.Add(new Game { AppId = pkgAppIdStr, Name = name, Type = type, IconUrl = string.Empty });
-                }
-
-                if (unresolvedIds.Count > 0)
-                {
-                    var resolved = await SearchService.ResolveAppNamesAsync(unresolvedIds).ConfigureAwait(true);
-                    foreach (var game in results)
-                        if (resolved.TryGetValue(game.AppId, out var resolvedName))
-                            game.Name = resolvedName;
-                }
-
-                _searchController.HideLoading();
-
-                if (!results.Exists(g => g.AppId == appIdStr))
-                    results.Insert(0, new Game
-                    {
-                        AppId = appIdStr,
-                        Name = details != null && details.Name != $"App {appId}" ? details.Name : $"App {appId}",
-                        Type = details?.Type ?? "Package",
-                        IconUrl = string.Empty
-                    });
+                var results = new List<Game> { baseGame };
+                results.AddRange(dlcs);
 
                 _searchController.DisplayResults(results);
-                _notificationManager.ShowToast($"Found {results.Count} apps in package {appId}");
+                var toastMsg = dlcs.Count > 0
+                    ? $"Found {baseGame.Name} with {dlcs.Count} DLC(s)"
+                    : $"Found {baseGame.Name}";
+                _notificationManager.ShowToast(toastMsg);
                 return;
             }
 

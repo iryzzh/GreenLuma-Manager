@@ -44,14 +44,49 @@ public class GameListController
         ApplyFilters();
     }
 
+    public int GetTotalAppIdCount()
+    {
+        return Games
+            .Select(g => g.AppId)
+            .Concat(Games.SelectMany(g => g.Depots))
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+    }
+
+    public bool WouldExceedLimit(IEnumerable<Game> gamesToAdd, out int newTotalCount)
+    {
+        var currentIds = new HashSet<string>(
+            Games.Select(g => g.AppId)
+                .Concat(Games.SelectMany(g => g.Depots))
+                .Where(id => !string.IsNullOrWhiteSpace(id)),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var game in gamesToAdd)
+        {
+            if (!string.IsNullOrWhiteSpace(game.AppId))
+                currentIds.Add(game.AppId);
+            if (game.Depots != null)
+            {
+                foreach (var depot in game.Depots)
+                    if (!string.IsNullOrWhiteSpace(depot))
+                        currentIds.Add(depot);
+            }
+        }
+
+        newTotalCount = currentIds.Count;
+        return newTotalCount > GreenLumaService.AppListLimit;
+    }
+
     public void ApplyFilters()
     {
         var view = CollectionViewSource.GetDefaultView(Games);
+        var totalAppIds = GetTotalAppIdCount();
 
         if (!IsFilterActive && !IsTypeFilterActive)
         {
             view.Filter = null;
-            _notificationManager.UpdateGameCount(Games.Count);
+            _notificationManager.UpdateGameCount(totalAppIds);
             UpdateGameListState();
             return;
         }
@@ -74,7 +109,12 @@ public class GameListController
                 if (string.Equals(typeFilter, "Other", StringComparison.OrdinalIgnoreCase))
                 {
                     if (string.Equals(game.Type, "Game", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(game.Type, "DLC", StringComparison.OrdinalIgnoreCase))
+                        game.Type.Contains("DLC", StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+                else if (string.Equals(typeFilter, "DLC", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!game.Type.Contains("DLC", StringComparison.OrdinalIgnoreCase))
                         return false;
                 }
                 else if (!string.Equals(game.Type, typeFilter, StringComparison.OrdinalIgnoreCase))
@@ -117,7 +157,7 @@ public class GameListController
         Games.Insert(index, game);
 
         var view = CollectionViewSource.GetDefaultView(Games);
-        var count = view.Filter == null ? Games.Count : view.Cast<object>().Count();
+        var count = view.Filter == null ? GetTotalAppIdCount() : view.Cast<object>().Count();
         _notificationManager.UpdateGameCount(count, view.Filter != null);
         UpdateGameListState();
         GamesChanged?.Invoke();
@@ -128,7 +168,7 @@ public class GameListController
         Games.Remove(game);
 
         var view = CollectionViewSource.GetDefaultView(Games);
-        var count = view.Filter == null ? Games.Count : view.Cast<object>().Count();
+        var count = view.Filter == null ? GetTotalAppIdCount() : view.Cast<object>().Count();
         _notificationManager.UpdateGameCount(count, view.Filter != null);
         UpdateGameListState();
         GamesChanged?.Invoke();
@@ -151,7 +191,7 @@ public class GameListController
         foreach (var game in distinctGames)
             Games.Add(game);
 
-        _notificationManager.UpdateGameCount(Games.Count);
+        _notificationManager.UpdateGameCount(GetTotalAppIdCount());
         UpdateGameListState();
         GamesChanged?.Invoke();
     }

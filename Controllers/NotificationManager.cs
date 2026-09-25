@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using GreenLuma_Manager.Services;
 
 namespace GreenLuma_Manager.Controllers;
 
@@ -132,14 +133,17 @@ public class NotificationManager
 
     public void UpdateGameCount(int count, bool isFiltered = false)
     {
-        _txtGameCount.Text = count switch
-        {
-            0 => "No games",
-            1 when !isFiltered => "1 game",
-            1 when isFiltered => "1 game (filtered)",
-            _ when !isFiltered => $"{count} games",
-            _ => $"{count} games (filtered)"
-        };
+        var limit = GreenLumaService.AppListLimit;
+        _txtGameCount.Text = isFiltered
+            ? $"{count} / {limit} (filtered)"
+            : $"{count} / {limit}";
+
+        if (count >= limit)
+            _txtGameCount.Foreground = GetResource("Danger") ?? Brushes.Red;
+        else if (count >= limit - 10)
+            _txtGameCount.Foreground = GetResource("Warning") ?? Brushes.Orange;
+        else
+            _txtGameCount.Foreground = GetResource("TextSecond") ?? Brushes.Gray;
     }
 
     private Brush? GetResource(string key)
