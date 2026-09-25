@@ -27,8 +27,11 @@
         <EnableWindowsTargeting>true</EnableWindowsTargeting>
         <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
         <WebView2NeverCopyLoaderDllToOutputDirectory>true</WebView2NeverCopyLoaderDllToOutputDirectory>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <TieredPGO>true</TieredPGO>
-        <PublishReadyToRun>true</PublishReadyToRun>
+        <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
+        <MetadataUpdaterSupport Condition="'$(Configuration)' == 'Release'">false</MetadataUpdaterSupport>
+        <NuGetAudit>false</NuGetAudit>
     </PropertyGroup>
 
     <ItemGroup>
