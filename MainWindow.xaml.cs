@@ -169,6 +169,28 @@ public partial class MainWindow
             DragMove();
     }
 
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        UpdateMaximizeIcon();
+    }
+
+    private void UpdateMaximizeIcon()
+    {
+        if (MaximizeIcon == null || MaximizeBtn == null) return;
+
+        if (WindowState == WindowState.Maximized)
+        {
+            MaximizeIcon.Data = Geometry.Parse("M2 0h8v8h-2v2H0V2h2V0zm1 1v1h5v5h1V1H3zM1 3v6h6V3H1z");
+            MaximizeBtn.ToolTip = "Restore";
+        }
+        else
+        {
+            MaximizeIcon.Data = Geometry.Parse("M0 0h10v10H0V0zm1 1v8h8V1H1z");
+            MaximizeBtn.ToolTip = "Maximize";
+        }
+    }
+
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
         WindowState = WindowState.Minimized;
