@@ -1,3 +1,4 @@
+using GreenLuma_Manager.Models;
 using SteamKit2;
 
 namespace GreenLuma_Manager.Services;
@@ -261,7 +262,10 @@ public sealed class SteamService : IDisposable
 
         var dlcList = kv["extended"]["listofdlc"].Value;
         if (!string.IsNullOrEmpty(dlcList))
-            info.DlcAppIds = dlcList.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            info.DlcAppIds = dlcList.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
 
         foreach (var dlcId in info.DlcAppIds)
             info.DlcDepots[dlcId] = [];
@@ -275,15 +279,66 @@ public sealed class SteamService : IDisposable
             if (depotId == appId)
                 continue;
 
+            var name = child["name"].Value ?? string.Empty;
+            if (name.Contains("Unused", StringComparison.OrdinalIgnoreCase))
+                continue;
+
             if (child["manifests"] == KeyValue.Invalid && child["depotfromapp"] == KeyValue.Invalid)
                 continue;
 
-            var dlcAppId = child["dlcappid"].Value;
+            var osList = child["config"]["oslist"].Value;
+            if (string.IsNullOrEmpty(osList))
+                osList = child["oslist"].Value;
+            if (string.IsNullOrEmpty(osList))
+                osList = "all";
 
-            if (!string.IsNullOrEmpty(dlcAppId) && info.DlcDepots.TryGetValue(dlcAppId, out var dlcDepotList))
+            var sharedApp = child["depotfromapp"].Value;
+            var isShared = !string.IsNullOrEmpty(sharedApp) || child["sharedinstall"].Value == "1";
+
+            var dlcAppId = child["dlcappid"].Value;
+            var isDlc = !string.IsNullOrEmpty(dlcAppId);
+
+            var manifestId = child["manifests"]["public"]["gid"].Value;
+            if (string.IsNullOrEmpty(manifestId))
+                manifestId = child["manifests"]["public"].Value;
+
+            ulong size = 0;
+            if (ulong.TryParse(child["maxsize"].Value, out var sz) || ulong.TryParse(child["size"].Value, out sz))
+                size = sz;
+
+            var depotDetail = new DepotInfo
+            {
+                DepotId = depotId.ToString(),
+                Name = name,
+                Os = osList,
+                Type = isDlc ? "dlc" : (isShared ? "shared" : "game"),
+                IsDlc = isDlc,
+                DlcAppId = isDlc ? dlcAppId : null,
+                IsSharedInstall = isShared,
+                SharedFromAppId = sharedApp,
+                Size = size,
+                ManifestId = manifestId
+            };
+
+            info.DepotDetails.Add(depotDetail);
+
+            if (!depotDetail.IsCompatibleWithWindows)
+                continue;
+
+            if (isDlc && info.DlcDepots.TryGetValue(dlcAppId!, out var dlcDepotList))
+            {
                 dlcDepotList.Add(depotId.ToString());
+            }
+            else if (isDlc)
+            {
+                info.DlcDepots[dlcAppId!] = [depotId.ToString()];
+                if (!info.DlcAppIds.Contains(dlcAppId!))
+                    info.DlcAppIds.Add(dlcAppId!);
+            }
             else
+            {
                 info.Depots.Add(depotId.ToString());
+            }
         }
 
         return info;
@@ -369,30 +424,36 @@ public sealed class SteamService : IDisposable
     public async Task<List<uint>> ScanRangeForDlcsAsync(uint baseAppId, List<uint> knownDlcIds)
     {
         var foundDlcIds = new List<uint>();
-        if (knownDlcIds.Count == 0) return foundDlcIds;
 
         try
         {
             if (!await EnsureReadyAsync().ConfigureAwait(false)) return foundDlcIds;
 
-            var sorted = knownDlcIds.OrderBy(x => x).ToList();
             var clusters = new List<(uint Min, uint Max)>();
-            var clusterStart = sorted[0];
-            var clusterEnd = sorted[0];
+            if (knownDlcIds.Count > 0)
+            {
+                var sorted = knownDlcIds.OrderBy(x => x).ToList();
+                var clusterStart = sorted[0];
+                var clusterEnd = sorted[0];
 
-            for (var i = 1; i < sorted.Count; i++)
-                if (sorted[i] - clusterEnd <= 1000)
-                {
-                    clusterEnd = sorted[i];
-                }
-                else
-                {
-                    clusters.Add((clusterStart, clusterEnd));
-                    clusterStart = sorted[i];
-                    clusterEnd = sorted[i];
-                }
+                for (var i = 1; i < sorted.Count; i++)
+                    if (sorted[i] - clusterEnd <= 1000)
+                    {
+                        clusterEnd = sorted[i];
+                    }
+                    else
+                    {
+                        clusters.Add((clusterStart, clusterEnd));
+                        clusterStart = sorted[i];
+                        clusterEnd = sorted[i];
+                    }
 
-            clusters.Add((clusterStart, clusterEnd));
+                clusters.Add((clusterStart, clusterEnd));
+            }
+            else
+            {
+                clusters.Add((baseAppId, baseAppId));
+            }
 
             var idsToScan = new HashSet<uint>();
             var knownSet = new HashSet<uint>(knownDlcIds) { baseAppId };
@@ -432,9 +493,12 @@ public sealed class SteamService : IDisposable
                         var common = kv["common"];
                         var type = common["type"].Value;
                         var parent = common["parent"].Value;
+                        var dlcForAppId = kv["extended"]["dlcforappid"].Value;
 
-                        if (string.Equals(parent, baseAppIdStr, StringComparison.OrdinalIgnoreCase) &&
-                            !string.IsNullOrEmpty(type))
+                        var isParentMatch = string.Equals(parent, baseAppIdStr, StringComparison.OrdinalIgnoreCase) ||
+                                            string.Equals(dlcForAppId, baseAppIdStr, StringComparison.OrdinalIgnoreCase);
+
+                        if (isParentMatch)
                             foundDlcIds.Add(appId);
                     }
                 }
@@ -449,6 +513,137 @@ public sealed class SteamService : IDisposable
         }
 
         return foundDlcIds;
+    }
+
+    public async Task<(Game? BaseGame, List<Game> Dlcs)> GetGameAndAllDlcsAsync(uint appId)
+    {
+        var baseDetails = await GetGameDetailsAsync(appId).ConfigureAwait(false);
+        if (baseDetails == null || baseDetails.Name == $"App {appId}")
+        {
+            var pkgAppIds = await GetPackageAppIdsAsync(appId).ConfigureAwait(false);
+            if (pkgAppIds.Count > 0)
+            {
+                var appDetails = await GetAppInfoBatchAsync(pkgAppIds).ConfigureAwait(false);
+                var pkgResults = new List<Game>();
+                foreach (var pId in pkgAppIds)
+                {
+                    appDetails.TryGetValue(pId, out var d);
+                    pkgResults.Add(new Game
+                    {
+                        AppId = pId.ToString(),
+                        Name = d?.Name ?? $"App {pId}",
+                        Type = d?.Type ?? "DLC",
+                        IconUrl = string.Empty
+                    });
+                }
+
+                return (
+                    new Game
+                    {
+                        AppId = appId.ToString(),
+                        Name = $"Package {appId}",
+                        Type = "Package",
+                        IconUrl = string.Empty
+                    },
+                    pkgResults);
+            }
+
+            return (null, []);
+        }
+
+        var baseGame = new Game
+        {
+            AppId = appId.ToString(),
+            Name = baseDetails.Name,
+            Type = baseDetails.Type,
+            IconUrl = string.Empty
+        };
+
+        var knownDlcIds = new HashSet<uint>();
+        if (baseDetails.ListOfDlc != null)
+        {
+            foreach (var idStr in baseDetails.ListOfDlc)
+                if (uint.TryParse(idStr, out var id))
+                    knownDlcIds.Add(id);
+        }
+
+        var packageInfo = await GetAppPackageInfoAsync(appId).ConfigureAwait(false);
+        if (packageInfo != null)
+        {
+            foreach (var dlcIdStr in packageInfo.DlcAppIds)
+                if (uint.TryParse(dlcIdStr, out var dlcId))
+                    knownDlcIds.Add(dlcId);
+
+            if (packageInfo.Depots.Count > 0)
+                baseGame.Depots = [.. packageInfo.Depots];
+        }
+
+        var relatedDlcIds = new HashSet<uint>();
+        try
+        {
+            var packageIds = await GetAppPackageIdsAsync(appId).ConfigureAwait(false);
+            foreach (var pkgId in packageIds.Take(10))
+            {
+                var pkgApps = await GetPackageAppIdsAsync(pkgId).ConfigureAwait(false);
+                foreach (var pAppId in pkgApps)
+                {
+                    if (pAppId != appId && !knownDlcIds.Contains(pAppId))
+                        relatedDlcIds.Add(pAppId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "SteamService.GetGameAndAllDlcs.RelatedPackages");
+        }
+
+        var allKnown = knownDlcIds.Concat(relatedDlcIds).ToList();
+        var scannedDlcs = await ScanRangeForDlcsAsync(appId, allKnown).ConfigureAwait(false);
+
+        var allDlcIdsToQuery = knownDlcIds
+            .Concat(relatedDlcIds)
+            .Concat(scannedDlcs)
+            .Distinct()
+            .ToList();
+
+        var dlcDetails = allDlcIdsToQuery.Count > 0
+            ? await GetAppInfoBatchAsync(allDlcIdsToQuery).ConfigureAwait(false)
+            : new Dictionary<uint, GameDetails>();
+
+        var dlcGames = new List<Game>();
+
+        foreach (var dlcId in allDlcIdsToQuery)
+        {
+            dlcDetails.TryGetValue(dlcId, out var details);
+            var name = details?.Name;
+            var isUnknown = string.IsNullOrWhiteSpace(name) || name == $"App {dlcId}";
+            var finalName = isUnknown ? $"Unknown DLC {dlcId}" : name!;
+
+            string type;
+            if (isUnknown)
+                type = "Unknown DLC";
+            else if (relatedDlcIds.Contains(dlcId))
+                type = details?.Type == "Soundtrack" ? "Soundtrack" : "Related DLC";
+            else
+                type = details?.Type ?? "DLC";
+
+            var dlcGame = new Game
+            {
+                AppId = dlcId.ToString(),
+                Name = finalName,
+                Type = type,
+                IconUrl = string.Empty
+            };
+
+            if (packageInfo?.DlcDepots != null && packageInfo.DlcDepots.TryGetValue(dlcId.ToString(), out var dlcDepots))
+            {
+                dlcGame.Depots = [.. dlcDepots];
+            }
+
+            dlcGames.Add(dlcGame);
+        }
+
+        return (baseGame, dlcGames);
     }
 
     private async Task<bool> EnsureReadyAsync()
@@ -554,6 +749,8 @@ public sealed class SteamService : IDisposable
         {
             "game" => "Game",
             "dlc" => "DLC",
+            "unknown dlc" => "Unknown DLC",
+            "related dlc" or "related_dlc" => "Related DLC",
             "demo" => "Demo",
             "mod" => "Mod",
             "video" => "Video",

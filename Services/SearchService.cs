@@ -327,8 +327,23 @@ public class SearchService
 
             var cached = await SteamApiCache.GetOrAddAsync(cacheKey, async () =>
             {
-                if (uint.TryParse(query, out _))
+                if (uint.TryParse(query, out var parsedAppId))
                 {
+                    try
+                    {
+                        var (baseGame, dlcs) = await SteamService.Instance.GetGameAndAllDlcsAsync(parsedAppId).ConfigureAwait(false);
+                        if (baseGame != null)
+                        {
+                            var list = new List<Game> { baseGame };
+                            list.AddRange(dlcs);
+                            return list;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, "SearchService.SearchAsync.GetGameAndAllDlcs");
+                    }
+
                     var detailsMap = await FetchGameDetailsBatchAsync([query]).ConfigureAwait(false);
                     if (detailsMap.TryGetValue(query, out var details) &&
                         !string.IsNullOrEmpty(details.Name) &&
